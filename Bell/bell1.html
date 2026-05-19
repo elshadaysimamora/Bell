@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bel Sekolah</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to right, #00b4db, #0083b0);
+        color: #fff;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 760px;
+        margin: 6rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 2.2rem;
+        margin-bottom: 0.25rem;
+      }
+      #clock {
+        font-size: 3rem;
+        margin: 0.5rem 0 0;
+        letter-spacing: 0.05em;
+      }
+      #status {
+        font-size: 1.1rem;
+        margin: 0.5rem 0 1rem;
+        min-height: 1.4em;
+      }
+      .btns {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 0.7rem 1rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 10px;
+        background: #ffcc00;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      }
+      button:hover {
+        background: #ff9900;
+      }
+      .panel {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 1rem;
+        margin-top: 1.25rem;
+      }
+      .list {
+        text-align: left;
+        font-size: 0.98rem;
+        line-height: 1.6;
+        max-height: 300px;
+        overflow: auto;
+      }
+      .item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.25rem 0.5rem;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+      }
+      .item:last-child {
+        border-bottom: none;
+      }
+      .muted {
+        opacity: 0.8;
+      }
+      .next {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+        padding: 0.6rem 0.8rem;
+        display: inline-block;
+        margin-top: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>UPT SD Negeri 001 Pasar Doloksanggul</h1>
+      <div id="clock">00:00:00</div>
+      <div id="status" class="muted">Menunggu jadwal…</div>
+
+      <div class="btns">
+        <button id="enableAudioBtn">🔊 Aktifkan Audio</button>
+        <button id="testBtn">🔔 Tes Bel</button>
+      </div>
+
+      <div class="panel">
+        <div>
+          <strong>Jadwal Hari Ini</strong>
+          <span id="todayName" class="muted"></span>
+        </div>
+        <div id="nextEvent" class="next muted">Bel berikutnya: —</div>
+        <div id="list" class="list"></div>
+      </div>
+    </div>
+
+    <script>
+      const pad = (n) => String(n).padStart(2, "0");
+      const nowHHMMSS = () => {
+        const d = new Date();
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(
+          d.getSeconds()
+        )}`;
+      };
+
+      // --- JADWAL (pakai nama file persis milik Anda; disarankan tanpa spasi)
+      const generalSchedule = [
+        {
+          time: "07:55:00",
+          message: "Waktu Masuk Sekolah",
+          sound: "sound/bell masuk.mp3",
+        },
+        {
+          time: "08:00:00",
+          message: "less pertama",
+          sound: "sound/less 1.mp3",
+        },
+        { time: "08:35:00", message: "less kedua", sound: "sound/less 2.mp3" },
+        { time: "09:10:00", message: "less ketiga", sound: "sound/less 3.mp3" },
+        {
+          time: "09:45:00",
+          message: "istirahat pertama",
+          sound: "sound/istirahat 1.mp3",
+        },
+        {
+          time: "09:59:00",
+          message: "istirahat 1 berakhir",
+          sound: "sound/istirahat 1 berakhir.mp3",
+        },
+        {
+          time: "10:00:00",
+          message: "less keempat",
+          sound: "sound/less 4.mp3",
+        },
+        { time: "10:35:00", message: "less kelima", sound: "sound/less 5.mp3" },
+        { time: "11:10:00", message: "less keenam", sound: "sound/less 6.mp3" },
+        {
+          time: "11:45:00",
+          message: "istirahat kedua",
+          sound: "sound/istirahat 2.mp3",
+        },
+        {
+          time: "11:59:00",
+          message: "istirahat 2 berakhir",
+          sound: "sound/istirahat 2 berakhir.mp3",
+        },
+        {
+          time: "12:00:00",
+          message: "less ketujuh",
+          sound: "sound/less 7.mp3",
+        },
+        {
+          time: "12:35:00",
+          message: "less kedelapan",
+          sound: "sound/less 8.mp3",
+        },
+        {
+          time: "13:10:00",
+          message: "Pulang Sekolah",
+          sound: "sound/bell pulang.mp3",
+        },
+      ];
+
+      const mondaySchedule = [
+        {
+          time: "07:20:00",
+          message: "Upacara Bendera",
+          sound: "sound/bell upacara.mp3",
+        },
+        {
+          time: "08:00:00",
+          message: "less pertama",
+          sound: "sound/less 1.mp3",
+        },
+        { time: "08:35:00", message: "less kedua", sound: "sound/less 2.mp3" },
+        { time: "09:10:00", message: "less ketiga", sound: "sound/less 3.mp3" },
+        {
+          time: "09:45:00",
+          message: "istirahat pertama",
+          sound: "sound/istirahat 1.mp3",
+        },
+        {
+          time: "09:59:00",
+          message: "istirahat 1 berakhir",
+          sound: "sound/istirahat 1 berakhir.mp3",
+        },
+        {
+          time: "10:00:00",
+          message: "less keempat",
+          sound: "sound/less 4.mp3",
+        },
+        { time: "10:35:00", message: "less kelima", sound: "sound/less 5.mp3" },
+        { time: "11:10:00", message: "less keenam", sound: "sound/less 6.mp3" },
+        {
+          time: "11:45:00",
+          message: "istirahat kedua",
+          sound: "sound/istirahat 2.mp3",
+        },
+        {
+          time: "11:59:00",
+          message: "istirahat 2 berakhir",
+          sound: "sound/istirahat 2 berakhir.mp3",
+        },
+        {
+          time: "12:00:00",
+          message: "less ketujuh",
+          sound: "sound/less 7.mp3",
+        },
+        {
+          time: "12:35:00",
+          message: "less kedelapan",
+          sound: "sound/less 8.mp3",
+        },
+        {
+          time: "13:10:00",
+          message: "Pulang Sekolah",
+          sound: "sound/bell pulang.mp3",
+        },
+      ];
+
+      const saturdaySchedule = [
+        {
+          time: "07:55:00",
+          message: "Waktu Masuk Sekolah",
+          sound: "sound/bell masuk.mp3",
+        },
+        {
+          time: "08:00:00",
+          message: "less pertama",
+          sound: "sound/less 1.mp3",
+        },
+        { time: "08:35:00", message: "less kedua", sound: "sound/less 2.mp3" },
+        { time: "09:10:00", message: "less ketiga", sound: "sound/less 3.mp3" },
+        {
+          time: "09:45:00",
+          message: "istirahat pertama",
+          sound: "sound/istirahat 1.mp3",
+        },
+        {
+          time: "09:59:00",
+          message: "istirahat 1 berakhir",
+          sound: "sound/istirahat 1 berakhir.mp3",
+        },
+        {
+          time: "10:00:00",
+          message: "less keempat",
+          sound: "sound/less 4.mp3",
+        },
+        { time: "10:35:00", message: "less kelima", sound: "sound/less 5.mp3" },
+        { time: "11:10:00", message: "less keenam", sound: "sound/less 6.mp3" },
+        {
+          time: "11:45:00",
+          message: "istirahat kedua",
+          sound: "sound/istirahat 2.mp3",
+        },
+        {
+          time: "11:59:00",
+          message: "istirahat 2 berakhir",
+          sound: "sound/istirahat 2 berakhir.mp3",
+        },
+        {
+          time: "12:00:00",
+          message: "less ketujuh",
+          sound: "sound/less 7.mp3",
+        },
+        {
+          time: "12:35:00",
+          message: "less kedelapan",
+          sound: "sound/less 8.mp3",
+        },
+        {
+          time: "13:10:00",
+          message: "Pulang Sekolah (Sabtu)",
+          sound: "sound/bell pulang sabtu.mp3",
+        },
+      ];
+
+      const dayName = [
+        "Minggu",
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat",
+        "Sabtu",
+      ];
+
+      function getTodaySchedule() {
+        const d = new Date().getDay();
+        if (d === 1) return mondaySchedule; // Senin
+        if (d === 6) return saturdaySchedule; // Sabtu
+        if (d === 0) return []; // Minggu: kosong
+        return generalSchedule; // Selasa–Jumat
+      }
+
+      // --- AUDIO
+      const player = new Audio();
+      let audioReady = false;
+
+      async function playBell(src) {
+        try {
+          player.src = src;
+          await player.play();
+        } catch (err) {
+          console.warn(
+            "Autoplay diblokir. Klik 'Aktifkan Audio' atau 'Tes Bel' sekali.",
+            err
+          );
+        }
+      }
+
+      // --- UI refs
+      const clockEl = document.getElementById("clock");
+      const statusEl = document.getElementById("status");
+      const listEl = document.getElementById("list");
+      const nextEl = document.getElementById("nextEvent");
+      const todayNameEl = document.getElementById("todayName");
+      const enableBtn = document.getElementById("enableAudioBtn");
+      const testBtn = document.getElementById("testBtn");
+
+      // --- Render jadwal & next event
+      function renderSchedule() {
+        const sched = getTodaySchedule();
+        const today = new Date().getDay();
+        todayNameEl.textContent = `(${dayName[today]})`;
+        listEl.innerHTML =
+          sched
+            .map(
+              (it) =>
+                `<div class="item"><span>${it.time}</span><span>${it.message}</span></div>`
+            )
+            .join("") ||
+          `<div class="muted">Tidak ada jadwal untuk hari ini.</div>`;
+        updateNextEvent();
+      }
+
+      function updateNextEvent() {
+        const sched = getTodaySchedule();
+        const now = nowHHMMSS();
+        const upcoming = sched.find((it) => it.time > now);
+        nextEl.textContent = upcoming
+          ? `Bel berikutnya: ${upcoming.time} — ${upcoming.message}`
+          : `Bel berikutnya: — (selesai untuk hari ini)`;
+      }
+
+      // --- Loop jam + trigger bel
+      let lastTriggered = ""; // simpan HH:MM:SS terakhir agar tidak bunyi dobel
+      setInterval(() => {
+        const t = nowHHMMSS();
+        clockEl.textContent = t;
+
+        const sched = getTodaySchedule();
+        const event = sched.find((e) => e.time === t);
+
+        if (event && lastTriggered !== t) {
+          statusEl.textContent = event.message;
+          lastTriggered = t;
+          playBell(event.sound);
+          updateNextEvent();
+        }
+      }, 250);
+
+      // --- Buttons
+      enableBtn.addEventListener("click", async () => {
+        try {
+          player.muted = true;
+          player.src = getTodaySchedule()[0]?.sound || "";
+          await player.play();
+          player.pause();
+          player.currentTime = 0;
+          player.muted = false;
+          audioReady = true;
+          enableBtn.textContent = "✅ Audio Aktif";
+          enableBtn.disabled = true;
+          statusEl.textContent =
+            "Audio aktif. Bel akan berbunyi sesuai jadwal.";
+        } catch (e) {
+          statusEl.textContent =
+            "Gagal mengaktifkan audio. Coba klik 'Tes Bel' dulu.";
+        }
+      });
+
+      testBtn.addEventListener("click", () => {
+        statusEl.textContent = "Tes bel…";
+        const testSrc =
+          generalSchedule[0]?.sound || getTodaySchedule()[0]?.sound || "";
+        playBell(testSrc);
+      });
+
+      // Init
+      renderSchedule();
+      updateNextEvent();
+    </script>
+  </body>
+</html>
